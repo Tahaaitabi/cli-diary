@@ -43,9 +43,9 @@ function preview {
 
 # Back to main menu:
 function back_to_main {
- echo "Press any key to return to the main menu: "  
- read 
- main
+  echo "Press [Enter] to return to the main menu: "  
+  read 
+  main
 }
 
 # Create new record:
@@ -65,6 +65,7 @@ function new_record {
     #printf "[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
     clear
     preview
+    back_to_main
   elif [ $choice = 'n' ]; then
     clear
     printf "Please enter a date [DD/MM/YY]: "
@@ -72,6 +73,7 @@ function new_record {
     #printf "\n[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
     clear
     preview
+    back_to_main
   fi
   # create a folder in the home directory and save file
 }
@@ -117,4 +119,3 @@ function main {
 
 greeting
 main
-preview
