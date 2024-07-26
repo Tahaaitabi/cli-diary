@@ -20,7 +20,7 @@ function greeting {
 
 # [y/n]:
 function yn_choice {
-  printf "\n \nType [y] for [YES] | [n] for [NO] "
+  printf "\nType [y] for [YES] | [n] for [NO] "
   read choice
   if [ $choice != 'y' -a $choice != 'n' ]; then 
     while [ $choice != 'y' -a $choice != 'n' ]; do  
@@ -30,39 +30,61 @@ function yn_choice {
   fi
 }
 
+# Preview entry data:
+function preview { 
+  clear
+  echo "**PREVIEW**:"
+  echo ""
+  echo "Added on:   [ $entry_date ]"
+  echo "Title:      [ $title ]"
+  echo "Content:    [ $content ]"
+  echo ""
+}
+
+# Back to main menu:
+function back_to_main {
+ echo "Press any key to return to the main menu: "  
+ read 
+ main
+}
+
 # Create new record:
-function new_record {
+function new_record { 
   clear
   read -p "Enter a title: " title
   read -p "Enter the content: " content
   clear
-  printf "[Preview]:\n \n[Title]: $title\n[Content]: $content"
-  printf "\n \nUse today's date ? "  
+  #printf "[Preview]:\n \n[Title]: $title\n[Content]: $content"
+  preview
+  printf "Use today's date ?\n"  
   yn_choice
   if [ $choice = 'y' ]; then
     entry_date=$date
     clear
     printf "Date added sucessfully!\n"
-    printf "[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
-    sleep 2
+    #printf "[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
     clear
+    preview
   elif [ $choice = 'n' ]; then
     clear
     printf "Please enter a date [DD/MM/YY]: "
     read entry_date
-    printf "\n[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
-    sleep 2
+    #printf "\n[Preview]:\n \n[Title]: $title\n[Content]: $content\n[Added on]: $entry_date\n"
     clear
+    preview
   fi
+  # create a folder in the home directory and save file
 }
 
 
 function get_record {
-  printf "\nGetting record..."
+  clear
 }
 
 function edit_record {
   printf "\nEditing records..."
+  sleep 1
+  clear
 }
 
 # Function for the main menu:
@@ -95,3 +117,4 @@ function main {
 
 greeting
 main
+preview
