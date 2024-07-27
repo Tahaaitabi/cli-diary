@@ -45,7 +45,7 @@ function check_path {
 # Save file:
 function save_file {
   if [ -d $path ]; then
-    printf "**ID:** $id\n**Added on:** $entry_date at $entry_time\n**Title:** # $title\n**Content:** $content\n" > $path/$file_name.md
+    printf "**ID:** $id\n**Added on:** $entry_date at $entry_time\n**Title:** # $title\n**Content:** $content\n" >> $path/$file_name.md
     echo "Saved as $file_name.md on $date at $time, in $path"
     echo ""
     back_to_main

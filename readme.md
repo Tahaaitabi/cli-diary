@@ -1,8 +1,8 @@
-# Diary program for the cli written in Bash
+# Diary script for the cli written in Bash
 ---
 ## Concept:
 ---
-The program should be able to do the following:
+The script should be able to do the following:
 
 1. Greet the user and show a menu:
     - a. `greeting()` -> [done]
