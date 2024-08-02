@@ -1,11 +1,10 @@
-#!/bin/bash
 # GLOBAL VARIABLES:
 name=$(whoami)
 date="$(date +"%d/%m/%y")"
 time="$(date +"%H:%M %p")"
 path=~/cli-diary  
-prompt=$'\n> '
-
+prompt=$(printf "\n[>] ")
+id="md-$file_name-$entry_date"
 
 #Greeting:
 function greeting {
@@ -74,8 +73,8 @@ function back_to_main {
 # Create new record:
 function new_record { 
   clear
-  read -p "Enter a title:$prompt" title
-  read -p "Enter the content:$prompt" content
+  read -p "Enter a title: $prompt" title
+  read -p "Enter the content: $prompt" content
   clear
   preview
   printf "Use today's date ?"  
@@ -101,15 +100,61 @@ function new_record {
   read file_name
 
   # Set the id:
-  id="md-$file_name-$entry_date"
-
-  # Save file:
+  id="md-$file_name-$entry_date" # Save file:
   save_file
 }
 
-# Fetch record:
+# Search by name 
+function search_by_name {
+  clear
+  # Save the value of the name in "sq_name"
+  read -p "What's the name of the file you're searching for $prompt? " sq_name
+  # Make the pattern the name of the string that we searched for plus the markdown filetype.
+  # Good, this now prints the nameOfTheFile.md
+  file_name=$(printf "$sq_name.md")
+  # Location of the file. 
+  file=~/cli-diary/
+  # Check if the file exists. GOOOD!!!
+  if [ -f $file$file_name ]; then
+    clear
+    printf "\n1) Read the file.\n2) Open in VIM.\n3) Go back to main menu"
+    read -p "What would you like to do ? $prompt" opt
+    case $opt in
+      1) echo "Reading to be inplemented via some method which allows me to read from the screen with the ability to scroll..."
+        ;;
+      2) echo "Opening in vim soon come!..."
+        ;;
+      3) main_menu
+        ;;
+    esac
+
+  elif [ ! -d $file ]; then
+    printf "\nSorry, we couldn't find the document '$file' you were looking for!\n Did you spell it correctly ?"
+    search_by_name
+  fi
+}
+
 function get_record {
   clear
+  echo  "1) Search by word in a file."
+  echo ""
+  echo "2) Search by date."
+  echo ""
+  echo "3) Search by name."
+  echo ""
+  echo "4) Search in a directory."
+  echo ""
+  read -p "How would you like to search ? (type in the number [1-4] and press ENTER)$prompt" opt
+    case $opt in
+    1 ) search_in_file
+      ;;
+    2 ) search_by_date
+      ;;
+    3 ) search_by_name
+      ;;
+    4 ) search_in_dir
+  esac
+
 }
 
 # Edit entry
@@ -146,6 +191,7 @@ function main {
     esac
   done
 }
+
 
 greeting
 main
