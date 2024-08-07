@@ -113,8 +113,7 @@ function new_record {
 }
 
 # Search by name 
-function search_name {
-  clear
+function search_name { clear
   # Save the value of the name in "sq_name"
   read -p "What's the name of the file you're searching for $prompt? " sq_name
   # Make the pattern the name of the string that we searched for plus the markdown filetype.
@@ -146,12 +145,11 @@ function search_word {
   clear
   # 1.Capture the word we want to search for in the $word variable.
   read -p "What's the word you want to search for ? $prompt" word
+  echo ""
   # 2. Search in the path directory for the $word in the $path.
-  result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Numeber: " $2; print "Result: " $3, $4; print "\n"}')
+  result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Number: " $2; print "Result: " $3, $4; print "\\n"}')
   printf "$result"
-  echo ""
   echo  "Would you like to search for another term ?" 
-  echo ""
   yn
   if [ $choice = 'y' ]; then
     search_word
