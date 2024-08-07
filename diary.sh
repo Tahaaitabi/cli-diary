@@ -1,3 +1,11 @@
+# TODO: 
+# 1. search_by word -> ability to search for a word inside of a document. Need to be able to first read the contents of a document and then use a a mix of grep and awk in order to then search for the word in the document. 
+######################
+# 2. search_by_date -> Read through the file ID's and then ascertain the date and match it to then only show the files that match the same date.
+# I need to also create a new preview function that allows for just the title and then the first sentence of the document(need this in regex too).
+####################
+# 3. search_by_name -> match the input string to the name of the document [ done ].
+
 # GLOBAL VARIABLES:
 name=$(whoami)
 date="$(date +"%d/%m/%y")"
@@ -44,7 +52,7 @@ function check_path {
 # Save file:
 function save_file {
   if [ -d $path ]; then
-    printf "**ID:** $id\n**Added on:** $entry_date at $entry_time\n**Title:** # $title\n**Content:** $content\n" >> $path/$file_name.md
+    printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path/$file_name.md
     echo "Saved as $file_name.md on $date at $time, in $path"
     echo ""
     back_to_main
@@ -105,7 +113,7 @@ function new_record {
 }
 
 # Search by name 
-function search_by_name {
+function search_name {
   clear
   # Save the value of the name in "sq_name"
   read -p "What's the name of the file you're searching for $prompt? " sq_name
@@ -130,32 +138,45 @@ function search_by_name {
 
   elif [ ! -d $file ]; then
     printf "\nSorry, we couldn't find the document '$file' you were looking for!\n Did you spell it correctly ?"
-    search_by_name
+    search_name
   fi
 }
 
-function get_record {
+function search_word {
   clear
-  echo  "1) Search by word in a file."
+  # 1.Capture the word we want to search for in the $word variable.
+  read -p "What's the word you want to search for ? $prompt" word
+  # 2. Search in the path directory for the $word in the $path.
+  result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Numeber: " $2; print "Result: " $3, $4; print "\n"}')
+  printf "$result"
   echo ""
-  echo "2) Search by date."
+  echo  "Would you like to search for another term ?" 
   echo ""
-  echo "3) Search by name."
-  echo ""
-  echo "4) Search in a directory."
-  echo ""
-  read -p "How would you like to search ? (type in the number [1-4] and press ENTER)$prompt" opt
+  yn
+  if [ $choice = 'y' ]; then
+    search_word
+  elif [ $choice = 'n' ]; then
+    echo "Returning to the main menu..."
+    sleep 1
+    main
+  fi
+  }
+  function get_record {
+    clear
+    echo "1) Search by word in a file."
+    echo "2) Search by date."
+    echo "3) Search by name."
+    echo ""
+    read -p "How would you like to search ? (type in the number [1-4] and press ENTER) $prompt" opt
     case $opt in
-    1 ) search_in_file
-      ;;
-    2 ) search_by_date
-      ;;
-    3 ) search_by_name
-      ;;
-    4 ) search_in_dir
-  esac
-
-}
+      1 ) search_word
+        ;;
+      2 ) search_date
+        ;;
+      3 ) search_name
+        ;;
+    esac
+  }
 
 # Edit entry
 function edit_record {
@@ -168,6 +189,7 @@ function edit_record {
 function main {
   clear
   while true; do
+    clear
     printf "What would you like to do ?"
     echo ""
     printf " 1. Create a new record\n 2. Retrieve a record\n 3. Edit a record\n 4. Exit diary$prompt"
