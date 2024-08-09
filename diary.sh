@@ -1,9 +1,5 @@
 # TODO: 
-# 1. search_by word -> ability to search for a word inside of a document. Need to be able to first read the contents of a document and then use a a mix of grep and awk in order to then search for the word in the document. [done]
-######################
-# 2. search_by_date -> Read through the file ID's and then ascertain the date and match it to then only show the files that match the same date.
-####################
-# 3. search_by_name -> match the input string to the name of the document [ done ].
+# 1. search_by_date -> Read through the file ID's and then ascertain the date and match it to then only show the files that match the same date.
 
 # GLOBAL VARIABLES:
 name=$(whoami)
@@ -12,6 +8,10 @@ time="$(date +"%H:%M %p")"
 path=~/cli-diary  
 prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
+
+###############
+# START SCREEN:
+###############
 
 #Greeting:
 function greeting {
@@ -27,6 +27,34 @@ function greeting {
   sleep 1
 }
 
+
+# Path checker;
+function check_path {
+  if [ ! -d $path ]; then
+    echo "...creating the diary's directory in '~'"
+    $(mkdir $path)
+    sleep 1
+  fi
+}
+
+#####################
+# PREVIEW FUNCTIONS:
+#####################
+
+# Preview entry data:
+function preview { 
+  clear
+  echo "Added on:   [ $entry_date ]"
+  echo "Title:      [ $title ]"
+  echo "Content:    [ $content ]"
+  echo "Save as:    [ $file_name.md ]"
+  echo ""
+}
+
+#############
+# NAVIGATION:
+#############
+
 # [y/n]:
 function yn {
   printf "\nType [y] for [YES] | [n] for [NO]$prompt"
@@ -39,14 +67,44 @@ function yn {
   fi
 }
 
-# Path checker;
-function check_path {
-  if [ ! -d $path ]; then
-    echo "...creating the diary's directory in '~'"
-    $(mkdir $path)
-    sleep 1
-  fi
+# Function for the main menu:
+function main {
+  clear
+  while true; do
+    clear
+    printf "What would you like to do ?"
+    echo ""
+    printf " 1. Create a new record\n 2. Retrieve a record\n 3. Edit a record\n 4. Exit diary$prompt"
+    read menu_choice 
+    case $menu_choice in
+      1 )
+        new_record
+        ;; 
+      2 )
+        get_record
+        ;;
+      3 )
+        edit_record
+        ;;
+      4 ) exit 
+        ;;
+      * ) echo "invalid option please select between 1-4"
+        sleep 1
+        clear
+        ;;
+    esac
+  done
 }
+
+# Back to main menu:
+function back_to_main {
+  read -p "Press [Enter] to return to the main menu:$prompt"
+  main
+}
+
+###########
+# WRITING:
+###########
 
 # Save file:
 function save_file {
@@ -61,23 +119,7 @@ function save_file {
   fi
 }
 
-# Preview entry data:
-function preview { 
-  clear
-  echo "Added on:   [ $entry_date ]"
-  echo "Title:      [ $title ]"
-  echo "Content:    [ $content ]"
-  echo "Save as:    [ $file_name.md ]"
-  echo ""
-}
-
-# Back to main menu:
-function back_to_main {
-  read -p "Press [Enter] to return to the main menu:$prompt"
-  main
-}
-
-# Create new record:
+# Create a new record:
 function new_record { 
   clear
   read -p "Enter a title: $prompt" title
@@ -111,6 +153,10 @@ function new_record {
   save_file
 }
 
+#############
+# SEARCHING:
+#############
+
 # Search by name 
 function search_name { clear
   # Save the value of the name in "sq_name"
@@ -140,6 +186,7 @@ function search_name { clear
   fi
 }
 
+# Search by word 
 function search_word {
   clear
   # 1.Capture the word we want to search for in the $word variable.
@@ -167,6 +214,16 @@ function search_word {
   fi
 }
 
+function search_date {
+#  read -p "Please type the desired date in the format 'dd/mm/yy' and press [ENTER] to submit. $prompt" date
+#  if [ $date = "$1/$2/$3"]; then 
+    
+}
+###########
+# FETCHING:
+###########
+
+# Retrieve records:
 function get_record {
   clear
   echo "1) Search by word in a file."
@@ -184,40 +241,15 @@ function get_record {
   esac
 }
 
-# Edit entry
+###########
+# EDITING:
+###########
+
+# Edit record:
 function edit_record {
   printf "\nEditing records..."
   sleep 1
   clear
-}
-
-# Function for the main menu:
-function main {
-  clear
-  while true; do
-    clear
-    printf "What would you like to do ?"
-    echo ""
-    printf " 1. Create a new record\n 2. Retrieve a record\n 3. Edit a record\n 4. Exit diary$prompt"
-    read menu_choice 
-    case $menu_choice in
-      1 )
-        new_record
-        ;; 
-      2 )
-        get_record
-        ;;
-      3 )
-        edit_record
-        ;;
-      4 ) exit 
-        ;;
-      * ) echo "invalid option please select between 1-4"
-        sleep 1
-        clear
-        ;;
-    esac
-  done
 }
 
 
