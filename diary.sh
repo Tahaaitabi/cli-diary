@@ -101,6 +101,58 @@ function back_to_main {
   main
 }
 
+# Back to Retrieve records:
+function back_to_retrieve {
+  read -p "Press [Enter] to return to the previous menu:$prompt"
+  get_record
+}
+
+############
+# DATABASE:
+############
+#if the db directory does not exist, create it.
+function db_path_check {
+  if [ ! -d $db_path ]; then
+    $(mkdir $db_path)
+    e="then"
+  else
+    e="else"
+  fi
+}
+
+function db_check {
+  #Checks if a directory is empty and if it is it creates a database, if it is not empty it just returns the names of all '.db' files it finds.
+  db_path_check
+  empty_dir=$(ls -A $db_path | wc -w )
+  search_db=$(find $db_path -name "*.db" | wc -w )
+  create_db=$(cd $db_path && touch diary.db )
+  if [ $empty_dir != '0' ]; then 
+    if [ $search_db = '0' ]; then
+      echo "No databases found!"
+      sleep .5
+      clear
+      echo "Creating 'diary.db'..."
+      $create_db
+      sleep .3
+      echo "Done!"
+    else
+      clear
+      echo "Database/s found: "
+      echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
+      back_to_retrieve
+    fi
+  else 
+    echo "This is an empty directory!"
+    sleep .5 
+    echo "Creating 'diary.db'..."
+    $create_db
+    sleep .3
+    echo "Done!"
+    back_to_retrieve
+  fi
+}
+
+
 ###########
 # WRITING:
 ###########
@@ -229,6 +281,8 @@ function get_record {
   echo "1) Search by word in a file."
   echo "2) Search by date."
   echo "3) Search by name."
+  echo "4) Search by database"
+  echo "5) Back to main-menu"
   echo ""
   read -p "How would you like to search ? (type in the number [1-4] and press ENTER) $prompt" opt
   case $opt in
@@ -238,6 +292,9 @@ function get_record {
       ;;
     3 ) search_name
       ;;
+    4 ) db_check
+      ;;
+    5 ) main 
   esac
 }
 
@@ -252,48 +309,5 @@ function edit_record {
   clear
 }
 
-############
-# DATABASE:
-############
-#if the db directory does not exist, create it.
-function db_path_check {
-  if [ ! -d $db_path ]; then
-    $(mkdir $db_path)
-    e="then"
-  else
-    e="else"
-  fi
-}
-
-function db_check {
-  #Checks if a directory is empty and if it is it creates a database, if it is not empty it just returns the names of all '.db' files it finds.
-  db_path_check
-  empty_dir=$(ls -A $db_path | wc -w )
-  search_db=$(find $db_path -name "*.db" | wc -w )
-  create_db=$(cd $db_path && touch diary.db )
-  if [ $empty_dir != '0' ]; then 
-    if [ $search_db = '0' ]; then
-      echo "No databases found!"
-      sleep .5
-      clear
-      echo "Creating 'diary.db'..."
-      $create_db
-      sleep .3
-      echo "Done!"
-    else
-      echo "Database/s found: "
-      echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
-    fi
-  else 
-    echo "This is an empty directory!"
-    sleep .5 
-    echo "Creating 'diary.db'..."
-    $create_db
-    sleep .3
-    echo "Done!"
-  fi
-}
-
-#greeting
-#main
-db_check
+greeting
+main
