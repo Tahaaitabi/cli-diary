@@ -1,11 +1,9 @@
-# TODO: 
-# 1. search_by_date -> Read through the file ID's and then ascertain the date and match it to then only show the files that match the same date.
-
 # GLOBAL VARIABLES:
 name=$(whoami)
 date="$(date +"%d/%m/%y")"
 time="$(date +"%H:%M %p")"
 path=~/cli-diary  
+db_path=~/cli-diary/db
 prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
 
@@ -36,6 +34,7 @@ function check_path {
     sleep 1
   fi
 }
+
 
 #####################
 # PREVIEW FUNCTIONS:
@@ -158,7 +157,8 @@ function new_record {
 #############
 
 # Search by name 
-function search_name { clear
+function search_name { 
+  clear
   # Save the value of the name in "sq_name"
   read -p "What's the name of the file you're searching for $prompt? " sq_name
   # Make the pattern the name of the string that we searched for plus the markdown filetype.
@@ -214,11 +214,11 @@ function search_word {
   fi
 }
 
-function search_date {
+#function search_date {
 #  read -p "Please type the desired date in the format 'dd/mm/yy' and press [ENTER] to submit. $prompt" date
 #  if [ $date = "$1/$2/$3"]; then 
-    
-}
+#k}
+
 ###########
 # FETCHING:
 ###########
@@ -252,6 +252,48 @@ function edit_record {
   clear
 }
 
+############
+# DATABASE:
+############
+#if the db directory does not exist, create it.
+function db_path_check {
+  if [ ! -d $db_path ]; then
+    $(mkdir $db_path)
+    e="then"
+  else
+    e="else"
+  fi
+}
 
-greeting
-main
+function db_check {
+  #Checks if a directory is empty and if it is it creates a database, if it is not empty it just returns the names of all '.db' files it finds.
+  db_path_check
+  empty_dir=$(ls -A $db_path | wc -w )
+  search_db=$(find $db_path -name "*.db" | wc -w )
+  create_db=$(cd $db_path && touch diary.db )
+  if [ $empty_dir != '0' ]; then 
+    if [ $search_db = '0' ]; then
+      echo "No databases found!"
+      sleep .5
+      clear
+      echo "Creating 'diary.db'..."
+      $create_db
+      sleep .3
+      echo "Done!"
+    else
+      echo "Database/s found: "
+      echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
+    fi
+  else 
+    echo "This is an empty directory!"
+    sleep .5 
+    echo "Creating 'diary.db'..."
+    $create_db
+    sleep .3
+    echo "Done!"
+  fi
+}
+
+#greeting
+#main
+db_check
