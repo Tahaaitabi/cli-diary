@@ -2,8 +2,8 @@
 name=$(whoami)
 date="$(date +"%d/%m/%y")"
 time="$(date +"%H:%M %p")"
-path=~/cli-diary  
-db_path=~/cli-diary/db
+path=~/cli-diary/  
+db_path=~/cli-diary/db/
 prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
 
@@ -22,7 +22,7 @@ function greeting {
   fi
   clear
   printf "$greeting, $name!\n"
-  sleep 1
+  sleep .5
 }
 
 
@@ -139,7 +139,7 @@ function db_check {
       clear
       echo "Database/s found: "
       echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
-      back_to_retrieve
+      sleep .3
     fi
   else 
     echo "This is an empty directory!"
@@ -148,11 +148,105 @@ function db_check {
     $create_db
     sleep .3
     echo "Done!"
-    back_to_retrieve
   fi
 }
 
+function select_table {
+  PS3="Select a Table to view: "
+  select table in $tables 
+  do
+    if [ -n "$table" ]; then 
+      clear
+      echo "You selected: [$table]"
+      break
+    else 
+      echo "Invalid selection. Please try again."
+      sleep 1
+    fi
+  done
+  selection="$table"
+}
 
+function create_new_table {
+  entries=$(sqlite3 $db_path$db_name "CREATE TABLE entries ( id INTEGER PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL, created DATETIME DEFAULT CURRENT_TIMESTAMP );")
+  $entries
+}
+
+function dbdata {
+  if [ $(sqlite3 $db_path$db_name ".tables" | wc -w ) -ne  "1" ]; then 
+    # get the tables in db
+    tables=$(sqlite3 $db_path$db_name ".tables" | tr " " "\n" | awk 'NF')
+    # provide a select option to choose a table to procceed with
+    select_table
+    # get the schema of the table
+    table_data=$(sqlite3 $db_path$db_name ".schema $selection")
+    # get the contents of the table
+    table_rows=$(echo $table_data | awk -F "[()]" '{print $2}' | awk -F "," '{print $1; print $2; print $3}' | awk '{print "> "$1}')
+    dbdata_e="then"
+  else
+    # get the table in the db
+    tables=$(sqlite3 $db_path$db_name ".tables")
+    # get the schema of the table
+    table_data=$(sqlite3 $db_path$db_name ".schema")
+    # get the names of the rows and what they are
+    table_rows=$(echo $table_data | awk -F "[()]" '{print $2}' | awk -F "," '{print $1; print $2; print $3}' | awk '{print "> "$1}')
+    dbdata_e="else"
+  fi
+
+  # If the database is empty:
+  if [ $(sqlite3 $db_path$db_name ".tables" | wc -w ) =  "0" ]; then 
+    echo "This database is empty, would you like me to create the required entries ? "
+    yn
+    if [ $choice  = "y" ]; then 
+      create_new_table
+      sleep .5
+      clear
+      dbdata
+      if [ $dbdata_e = "then" ]; then 
+        echo "$selection contains: "
+        echo "$table_rows"
+        back_to_retrieve
+      else
+        echo "$db contains:" 
+        echo "Table/s: $tables"
+        echo ""
+        echo "$tables contains:" 
+        echo "$table_rows"
+        back_to_retrieve
+      fi
+    else
+      break 
+    fi
+  fi
+}
+
+function get_db {
+  db_check
+  read -p "Enter a db name: " db
+  db_name="$db.db"
+  if [ $(find $db_path$db_name >> /dev/null; echo $? ) = '0' ]; then
+    echo "Loading "$db" data..."; 
+    sleep .5
+    clear
+    dbdata
+    if [ $dbdata_e = "then" ]; then 
+      echo "$selection contains: "
+      echo "$table_rows"
+      back_to_retrieve
+    else
+      echo "$db contains:" 
+      echo "Table/s: $tables"
+      echo ""
+      echo "$tables contains:" 
+      echo "$table_rows"
+      back_to_retrieve
+    fi
+  else
+    echo "$db does not exist! Please check the name and try again.";
+    sleep .5
+    clear
+  fi
+}
 ###########
 # WRITING:
 ###########
@@ -160,7 +254,7 @@ function db_check {
 # Save file:
 function save_file {
   if [ -d $path ]; then
-    printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path/$file_name.md
+    printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path$file_name.md
     echo "Saved as $file_name.md on $date at $time, in $path"
     echo ""
     back_to_main
@@ -266,11 +360,6 @@ function search_word {
   fi
 }
 
-#function search_date {
-#  read -p "Please type the desired date in the format 'dd/mm/yy' and press [ENTER] to submit. $prompt" date
-#  if [ $date = "$1/$2/$3"]; then 
-#k}
-
 ###########
 # FETCHING:
 ###########
@@ -292,7 +381,7 @@ function get_record {
       ;;
     3 ) search_name
       ;;
-    4 ) db_check
+    4 ) get_db
       ;;
     5 ) main 
   esac
