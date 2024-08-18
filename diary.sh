@@ -9,6 +9,7 @@ db_path=~/cli-diary/db/
 prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
 db_name="$db.db"
+list_all_files=$(ls -l "$path"* | awk '/-r/ {print $NF}' | awk -F "/" '{print "> "$NF}')
 #####################################
 # INITIALIZATION AND SETUP:
 #####################################
@@ -89,6 +90,21 @@ function db_menu {
     3) db_create
       ;;
     4) back_to-retrieve
+      ;;
+  esac
+}
+# Select edit action
+function edit_action {
+  echo ""
+  read -p "What would you like to do ? $prompt" opt
+  case $opt in
+    1) clear
+      echo $(cat $file)
+      press_enter
+      ;;
+    2) vim $file
+      ;;
+    3) main
       ;;
   esac
 }
@@ -188,17 +204,17 @@ function dbdata {
 }
 # Show available db's:
 function db_show {
+  clear
   echo "Database/s found: "
   echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
-  sleep .3
-
+  back_to_db_menu
 }
 # Create a new db:
 function db_create {
   read -p "Enter a db name: " db
   create_db=$(cd "$db_path" && touch "$db".db )
   echo "Created '"$db".db', in "$db_path" "; 
-  sleep .8
+  sleep .5
 }
 # Search for a db:
 function db_search {
@@ -222,7 +238,7 @@ function db_search {
     fi
   else
     echo "$db does not exist!";
-    sleep 1
+    sleep .5
     db_menu
   fi
 }
@@ -244,17 +260,16 @@ function select_table {
       break
     else 
       echo "Invalid selection. Please try again."
-      sleep 1
+      sleep .5
     fi
   done
   selection="$table"
 }
-
+# Create a new table in db:
 function create_new_table {
   entries=$(sqlite3 $db_path$db.db "CREATE TABLE entries ( id INTEGER PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL, created DATETIME DEFAULT CURRENT_TIMESTAMP );")
   $entries
 }
-
 #####################################
 # FILE OPERATIONS:
 #####################################
@@ -282,11 +297,9 @@ function new_record {
     clear
     preview
   fi
-
   # Name the file
   echo -n "Please name your file:$prompt" 
   read file_name
-
   # Set the id:
   id="md-$file_name-$entry_date" # Save file:
   save_file
@@ -306,30 +319,31 @@ function save_file {
 # Search by name 
 function search_name { 
   clear
-  # Save the value of the name in "sq_name"
-  read -p "What's the name of the file you're searching for $prompt? " sq_name
-  # Make the pattern the name of the string that we searched for plus the markdown filetype.
-  # Good, this now prints the nameOfTheFile.md
-  file_name=$(printf "$sq_name.md")
-  # Location of the file. 
-  file=~/cli-diary/
-  # Check if the file exists. GOOOD!!!
-  if [ -f $file$file_name ]; then
+  echo "Do you know the name of the file you're looking for?"
+  yn
+  if [ $choice = "y" ]; then 
     clear
-    printf "\n1) Read the file.\n2) Open in VIM.\n3) Go back to main menu"
-    read -p "What would you like to do ? $prompt" opt
-    case $opt in
-      1) echo "Reading to be inplemented via some method which allows me to read from the screen with the ability to scroll..."
-        ;;
-      2) echo "Opening in vim soon come!..."
-        ;;
-      3) main
-        ;;
-    esac
-
-  elif [ ! -d $file ]; then
-    printf "\nSorry, we couldn't find the document '$file' you were looking for!\n Did you spell it correctly ?"
-    search_name
+    read -p "What's the name of the file you're searching for?$prompt" sq_name
+    file_name=$(printf "$sq_name.md")
+    if [ -f $path$file_name ]; then
+      file="$path$file_name"
+      clear
+      printf "1) Read "$file_name".\n2) Open "$file_name" in VIM.\n3) Go back to main menu"
+      edit_action
+    elif [ ! -d $path$file_name ]; then
+      file="$path$file_name"
+      clear
+      printf "Sorry, we couldn't find the document '$sq_name'.\nHere's a list of the available docs:\n"
+      show_docs=$(ls -A "$path"| awk '/\.md/ {print}' | awk -F"\n" '{print "> "$0}')
+      printf "$show_docs\n"
+      press_enter
+    fi
+    else 
+      clear
+      echo "Here's a list of all the available files:"
+      echo "$list_all_files"
+      press_enter
+      search_name
   fi
 }
 # Search by word 
@@ -367,7 +381,8 @@ function get_record {
   echo "3) Search by name."
   echo "4) Search by database"
   echo "5) Back to main-menu"
-  read -p "How would you like to search ? (type in the number [1-5] and press ENTER) $prompt" opt
+  printf "How would you like to search ?\n(type in the number [1-5] and press ENTER)"
+  read -p "$prompt" opt
   case $opt in
     1 ) search_word
       ;;
@@ -382,9 +397,19 @@ function get_record {
 }
 # Edit record:
 function edit_record {
-  printf "\n FUNCTION IN PROGRESS OF CREATION..."
-  sleep 1
   clear
+  search_name
+  #search_record
+  #select_record
+}
+# Search gor a record:
+function search_record {
+  # search for $record
+  echo ""
+}
+# Select record:
+function select_record {
+  echo "selecting record under construction."
 }
 #####################################
 # UTILITY FUNCTIONS:
@@ -408,6 +433,10 @@ function yn {
       read choice
     done
   fi
+}
+# Press Enter to continue:
+function press_enter {
+  read -p "Press [ENTER] to continue $prompt" keypress
 }
 #####################################
 # SCRIPT ENTRY POINT:
