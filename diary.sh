@@ -208,7 +208,8 @@ function dbdata {
 function db_show {
   clear
   echo "Database/s found: "
-  echo "$(find $db_path -name *.db | awk -F "/" '{print $NF}' | awk -F"." '{print "> ["$1"]"}')"
+  database=$(find $db_path -name *.db | awk -F "/" '{print $NF}' | awk -F"." '{print "> ["$1"]"}')
+  echo "$database"
 }
 # Create a new db:
 function db_create {
@@ -221,6 +222,7 @@ function db_create {
 }
 # Search for & display a db:
 function db_search {
+  busqueda=$(find $db_path -name "$db".db | wc -w)
   db_show
     read -p "Enter the name of the database you want to search in:$prompt" db
     if [ $(find "$db_path$db".db >> /dev/null; echo $? ) = '0' ]; then
@@ -242,6 +244,9 @@ function db_search {
       elif [ $dbdata_e = "empty" ]; then 
         create_new_table
       fi
+    elif [ $busqueda = "0" ]; then
+      echo "'$db' does not exist, please choose a db from the list above"
+      press_enter
     fi
   }
   # Retrieve database:
