@@ -1,15 +1,15 @@
+#!/bin/bash
 #####################################
 # CONFIGURATION AND GLOBAL VARIABLES:
 #####################################
 name=$(whoami)
 date="$(date +"%d/%m/%y")"
 time="$(date +"%H:%M %p")"
-path=~/cli-diary/  
-db_path=~/cli-diary/db/
+path="${HOME}/cli-diary/" 
+db_path="${HOME}/cli-diary/db/"
 prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
-db_name="$db.db"
-list_all_files=$(ls -l "$path"* | awk '/-r/ {print $NF}' | awk -F "/" '{print "> "$NF}')
+list_all_files=$(ls -l "$path"* | awk '/-r/ {print $NF}')
 #####################################
 # INITIALIZATION AND SETUP:
 #####################################
@@ -36,11 +36,11 @@ function check_path {
 }
 # Check database directory exists:
 function db_path_check {
-  if [ ! -d $db_path ]; then
-    $(mkdir $db_path)
-    e="then"
+  if [ ! -e $db_path ]; then
+    $(mkdir -p $db_path)
+    db_path_e="then"
   else
-    e="else"
+    db_path_e="else"
   fi
 }
 #####################################
@@ -58,8 +58,7 @@ function main {
     case $menu_choice in
       1 )
         new_record
-        ;; 
-      2 )
+        ;; 2 )
         get_record
         ;;
       3 )
@@ -73,6 +72,7 @@ function main {
         ;;
     esac
   done
+  menu_name="main"
 }
 # DB menu:
 function db_menu {
@@ -92,10 +92,11 @@ function db_menu {
     4) back_to-retrieve
       ;;
   esac
+  menu_name="db_menu"
 }
 # Select edit action
 function edit_action {
-  echo ""
+  printf "1) Read "$file".\n2) Open "$file" in VIM.\n3) Go back to main menu.\n"
   read -p "What would you like to do ? $prompt" opt
   case $opt in
     1) clear
@@ -106,6 +107,29 @@ function edit_action {
       ;;
     3) main
       ;;
+  esac
+  menu_name="edit_action"
+}
+# Retrieve records:
+function get_record {
+  clear
+  echo "1) Search by word in a file."
+  echo "2) Search by date."
+  echo "3) Search by name."
+  echo "4) Search by database"
+  echo "5) Back to main-menu"
+  printf "How would you like to search ?\n(type in the number [1-5] and press ENTER)"
+  read -p "$prompt" opt
+  case $opt in
+    1 ) search_word
+      ;;
+    2 ) search_date
+      ;;
+    3 ) search_name
+      ;;
+    4 ) get_db
+      ;;
+    5 ) main 
   esac
 }
 # Back to main menu:
@@ -127,64 +151,75 @@ function back_to_db_menu {
 # DATABASE OPERATIONS:
 #####################################
 # Check the path of the db:
+# 1. check if db_path exists. 
+# Scenario 1: 
+# - if it does exist then check if it's empty or not.
+# - if it's not empty select a db.
+# - check if the db is empty or not: 
+# - if it's not empty grab the db data.
+
 function db_check {
-  db_path_check
   empty_dir=$(ls -A $db_path | wc -w )
-  search_db=$(find $db_path -name "*.db" | wc -w )
-  create_db=$(cd $db_path && touch diary.db )
-  if [ $empty_dir != '0' ]; then 
-    if [ $search_db = '0' ]; then
-      echo "No databases found!"
-      sleep .5
-      clear
-      echo "Creating 'diary.db'..."
-      $create_db
-      sleep .3
-      echo "Done!"
-    else
-      sleep .3
-      clear
-    fi
-  else 
+  search_db=$(find $db_path -name *.db | wc -w )
+  $empty_dir
+  $search_db
+  if [ $empty_dir = "0" ]; then 
+    clear
     echo "This is an empty directory!"
-    sleep .5 
-    echo "Creating 'diary.db'..."
-    $create_db
-    sleep .3
-    echo "Done!"
+    sleep .5
+    clear
+    echo "Would you like to create a new database directory?"
+    yn
+    if [ $choice = "y" ]; then 
+      db_path_check
+    elif [ $choice = "n" ]; then 
+      back_to_retrieve
+    fi
+  elif [ $empty_dir != "0" ]  && [ $search_db = '0' ]; then
+    echo "No databases found!"
+    sleep .5
+    clear
+    echo "Would you like to create a new database?"
+    yn
+    if [ $choice = "y" ]; then 
+      db_create
+    elif [ $choice = "n" ]; then 
+      back_to_retrieve
+    fi
+  elif [ $empty_dir != "0" ]  && [ $search_db != "0" ]; then 
+    db_search 
   fi
 }
 
 # Get table data
 function dbdata {
-  if [ $(sqlite3 $db_path$db_name ".tables" | wc -w ) -ne  "1" ]; then 
+  if [ $(sqlite3 $db_path$db.db".tables" | wc -w ) -ne  "1" ]; then 
     # get the tables in db
-    tables=$(sqlite3 $db_path$db_name ".tables" | tr " " "\n" | awk 'NF')
+    tables=$(sqlite3 $db_path$db.db".tables" | tr " " "\n" | awk 'NF')
     # provide a select option to choose a table to procceed with
     select_table
     # get the schema of the table
-    table_data=$(sqlite3 $db_path$db_name ".schema $selection")
+    table_data=$(sqlite3 $db_path$db.db".schema $selection")
     # get the contents of the table
     table_rows=$(echo $table_data | awk -F "[()]" '{print $2}' | awk -F "," '{print $1; print $2; print $3}' | awk '{print "> "$1}')
     dbdata_e="then"
   else
     # get the table in the db
-    tables=$(sqlite3 $db_path$db_name ".tables")
+    tables=$(sqlite3 $db_path$db.db".tables")
     # get the schema of the table
-    table_data=$(sqlite3 $db_path$db_name ".schema")
+    table_data=$(sqlite3 $db_path$db.db".schema")
     # get the names of the rows and what they are
     table_rows=$(echo $table_data | awk -F "[()]" '{print $2}' | awk -F "," '{print $1; print $2; print $3}' | awk '{print "> "$1}')
     dbdata_e="else"
   fi
   # If the database is empty:
-  if [ $(sqlite3 $db_path$db_name ".tables" | wc -w ) =  "0" ]; then 
+  if [ $(sqlite3 $db_path$db.db".tables" | wc -w ) =  "0" ]; then 
     echo "This database is empty, would you like me to create the required entries ? "
     yn
     if [ $choice  = "y" ]; then 
       create_new_table
       sleep .5
       clear
-      dbdata
       if [ $dbdata_e = "then" ]; then 
         echo "$selection contains: "
         echo "$table_rows"
@@ -206,19 +241,20 @@ function dbdata {
 function db_show {
   clear
   echo "Database/s found: "
-  echo "$(find $db_path -name "*.db" | awk -F "/" '{print "[" $NF "]"}')"
-  back_to_db_menu
+  echo "$(find $db_path -name *.db | awk -F "/" '{print $NF}' | awk -F"." '{print "> ["$1"]"}')"
 }
 # Create a new db:
 function db_create {
-  read -p "Enter a db name: " db
+  read -p "Enter a database name: " db
   create_db=$(cd "$db_path" && touch "$db".db )
+  $create_db
   echo "Created '"$db".db', in "$db_path" "; 
-  sleep .5
+  db_search
 }
 # Search for a db:
 function db_search {
-  read -p "Enter a db name: " db
+  db_show
+  read -p "Enter the name of the database you want to search in:$prompt" db
   if [ $(find "$db_path$db".db >> /dev/null; echo $? ) = '0' ]; then
     echo "Loading "$db" data..."; 
     sleep .5
@@ -239,7 +275,8 @@ function db_search {
   else
     echo "$db does not exist!";
     sleep .5
-    db_menu
+    press_enter
+    back_to_retrieve
   fi
 }
 # Retrieve database:
@@ -269,6 +306,8 @@ function select_table {
 function create_new_table {
   entries=$(sqlite3 $db_path$db.db "CREATE TABLE entries ( id INTEGER PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL, created DATETIME DEFAULT CURRENT_TIMESTAMP );")
   $entries
+  echo "Default table 'entries' successfully created!"
+  press_enter
 }
 #####################################
 # FILE OPERATIONS:
@@ -325,44 +364,68 @@ function search_name {
     clear
     read -p "What's the name of the file you're searching for?$prompt" sq_name
     file_name=$(printf "$sq_name.md")
-    if [ -f $path$file_name ]; then
-      file="$path$file_name"
+    file="$path$file_name"
+    if [ -f $file ]; then
       clear
-      printf "1) Read "$file_name".\n2) Open "$file_name" in VIM.\n3) Go back to main menu"
       edit_action
-    elif [ ! -d $path$file_name ]; then
-      file="$path$file_name"
+    elif [ ! -d $file ]; then
       clear
       printf "Sorry, we couldn't find the document '$sq_name'.\nHere's a list of the available docs:\n"
       show_docs=$(ls -A "$path"| awk '/\.md/ {print}' | awk -F"\n" '{print "> "$0}')
       printf "$show_docs\n"
       press_enter
-    fi
-    else 
       clear
-      echo "Here's a list of all the available files:"
-      echo "$list_all_files"
-      press_enter
-      search_name
+      echo "Would you like to search for another file by name?"
+      yn
+      if [ $choice = "y" ]; then 
+        search_name
+      elif [ $choice = "n" ]; then
+        back_to_retrieve
+      fi
+    fi
+  else 
+    clear
+    echo "Here's a list of all the available files:"
+    select_file
+    edit_action
   fi
+}
+function select_file {
+  PS3="Select a file to proceed:$prompt"
+  select file in $list_all_files; 
+  do
+    if [ -n "$file" ]; then 
+      clear
+      echo "You selected: "$(echo "$file" | awk -F "/" '{print $NF}')""
+      break
+    else
+      clear
+      echo "Invalid selection, please select a valid file..."
+    fi
+  done
 }
 # Search by word 
 function search_word {
   clear
-  # 1.Capture the word we want to search for in the $word variable.
-  read -p "What's the word you want to search for ? $prompt" word
-  echo ""
-  # 2. Search in the path directory for the $word in the $path.
+  read -p "What's the word you want to search for ?$prompt" word
+  clear
   result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Number: " $2; print "Result: " $3, $4; print "\\n"}')
-  # Check if the search was successfull or not
   check=$(grep -i -r -n $word $path >> /dev/null; echo $?)
   if [ $check = '0' ]; then
     printf "$result"
-    echo  "Would you like to search for another term ?" 
+    press_enter
+    clear
+    echo "Would you like to search for another word?" 
+    yn
+    if [ $choice = 'y' ]; then
+      search_word
+    elif [ $choice = 'n' ]; then
+      get_record 
+    fi
   else
-    echo "The word you're looking for does not exist."
+    echo "'"$word"' does not exist."
     echo ""
-    echo  "Would you like to search for another term ?" 
+    echo  "Would you like to search again?" 
     yn
     if [ $choice = 'y' ]; then
       search_word
@@ -373,34 +436,42 @@ function search_word {
     fi
   fi
 }
-# Retrieve records:
-function get_record {
+# Search by date:
+function search_date {
   clear
-  echo "1) Search by word in a file."
-  echo "2) Search by date."
-  echo "3) Search by name."
-  echo "4) Search by database"
-  echo "5) Back to main-menu"
-  printf "How would you like to search ?\n(type in the number [1-5] and press ENTER)"
-  read -p "$prompt" opt
-  case $opt in
-    1 ) search_word
-      ;;
-    2 ) search_date
-      ;;
-    3 ) search_name
-      ;;
-    4 ) get_db
-      ;;
-    5 ) main 
-  esac
+  read -p "Enter a date in the 'dd/mm/yy': $prompt" date
+  #check_format
+  check=$(grep -i -r -n "$date" $path >> /dev/null; echo $?)
+  result=$(grep -i -r -n "$date" $path | awk '/ID/' | awk -F ":" '{print $1}' | awk -F "/" '{print "> "$NF}')
+  if [ $check = "0" ]; then 
+    clear
+    echo "These are the documents that were written on $date:"
+    echo "$result"
+    #TODO: Code a selection menu. So we can add options of what to do with those documents. 
+    press_enter
+    clear
+    echo "Would you like to try another date?"
+    yn
+    if [ $choice = "y" ]; then 
+      search_date
+    elif [ $choice = "n" ]; then
+      back_to_main
+    fi
+  else
+    echo "No results for '$date'."
+    echo "Would you like to try another date?"
+    yn
+    if [ $choice = "y" ]; then 
+      search_date
+    elif [ $choice = "n" ]; then
+      back_to_main
+    fi
+  fi
 }
 # Edit record:
 function edit_record {
   clear
   search_name
-  #search_record
-  #select_record
 }
 # Search gor a record:
 function search_record {
@@ -425,7 +496,7 @@ function preview {
 }
 # [y/n] options:
 function yn {
-  printf "\nType [y] for [YES] | [n] for [NO]$prompt"
+  printf "Type [y] for [YES] | [n] for [NO]$prompt"
   read choice
   if [ $choice != 'y' -a $choice != 'n' ]; then 
     while [ $choice != 'y' -a $choice != 'n' ]; do  
