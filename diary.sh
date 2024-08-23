@@ -11,6 +11,11 @@ prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
 list_all_files=$(ls -l "$path"* | awk '/-r/ {print $NF}')
 #####################################
+# ERROR VALIDATION
+#####################################
+date_format="^[0-9]{2}[/]{1}[0-9]{2}[/]{1}[0-9]{2}$"
+
+#####################################
 # INITIALIZATION AND SETUP:
 #####################################
 # Greeting:
@@ -174,7 +179,7 @@ function db_check {
 # Get table data
 function dbdata {
   clear
-   # If the database is empty:
+  # If the database is empty:
   if [ $(sqlite3 "$db_path$db".db ".tables" | wc -w ) = "0" ]; then 
     dbdata_e="empty"
     echo "This database is empty, would you like me to create the required entries ? "
@@ -202,7 +207,7 @@ function dbdata {
     # get the names of the rows and what they are
     table_rows=$(echo $table_data | awk -F "[()]" '{print $2}' | awk -F "," '{print $1; print $2; print $3}' | awk '{print "> "$1}')
     dbdata_e="one"
-   fi
+  fi
 }
 # Show available db's:
 function db_show {
@@ -224,265 +229,266 @@ function db_create {
 function db_search {
   busqueda=$(find $db_path -name "$db".db | wc -w)
   db_show
-    read -p "Enter the name of the database you want to search in:$prompt" db
-    if [ $(find "$db_path$db".db >> /dev/null; echo $? ) = '0' ]; then
-      echo "Loading "$db" data..."; 
-      sleep .5
-      clear
-      dbdata
-      if [ $dbdata_e = "multiple" ]; then 
-        echo "$selection contains: "
-        echo "$table_rows"
-        back_to_retrieve
-      elif [ $dbdata_e = "one" ]; then
-        echo "$db contains:" 
-        echo "Table/s: $tables"
-        echo ""
-        echo "$tables contains:" 
-        echo "$table_rows"
-        back_to_retrieve
-      elif [ $dbdata_e = "empty" ]; then 
-        create_new_table
-      fi
-    elif [ $busqueda = "0" ]; then
-      echo "'$db' does not exist, please choose a db from the list above"
-      press_enter
-    fi
-  }
-  # Retrieve database:
-  function get_db {
-    db_path_check
-    db_check
-    db_search
-  }
-  # TABLE RELATED:
-  #---------------
-  # Select Table in a DB:
-  function select_table {
-    PS3="Select a Table to view: "
-    select table in $tables 
-    do
-      if [ -n "$table" ]; then 
-        clear
-        echo "You selected: [$table]"
-        break
-      else 
-        echo "Invalid selection. Please try again."
-        sleep .5
-      fi
-    done
-    selection="$table"
-  }
-  # Create a new table in db:
-  function create_new_table {
-    entries=$(sqlite3 $db_path$db.db "CREATE TABLE entries ( id INTEGER PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL, created DATETIME DEFAULT CURRENT_TIMESTAMP );")
-    $entries
-    echo "Default table 'entries' successfully created!"
-    sleep .8
-    dbdata
-  }
-  #####################################
-  # FILE OPERATIONS:
-  #####################################
-  # Create a new record:
-  function new_record { 
+  read -p "Enter the name of the database you want to search in:$prompt" db
+  if [ $(find "$db_path$db".db >> /dev/null; echo $? ) = '0' ]; then
+    echo "Loading "$db" data..."; 
+    sleep .5
     clear
-    read -p "Enter a title: $prompt" title
-    read -p "Enter the content: $prompt" content
+    dbdata
+    if [ $dbdata_e = "multiple" ]; then 
+      echo "$selection contains: "
+      echo "$table_rows"
+      back_to_retrieve
+    elif [ $dbdata_e = "one" ]; then
+      echo "$db contains:" 
+      echo "Table/s: $tables"
+      echo ""
+      echo "$tables contains:" 
+      echo "$table_rows"
+      back_to_retrieve
+    elif [ $dbdata_e = "empty" ]; then 
+      create_new_table
+    fi
+  elif [ $busqueda = "0" ]; then
+    echo "'$db' does not exist, please choose a db from the list above"
+    press_enter
+  fi
+}
+# Retrieve database:
+function get_db {
+  db_path_check
+  db_check
+  db_search
+}
+# TABLE RELATED:
+#---------------
+# Select Table in a DB:
+function select_table {
+  PS3="Select a Table to view: "
+  select table in $tables 
+  do
+    if [ -n "$table" ]; then 
+      clear
+      echo "You selected: [$table]"
+      break
+    else 
+      echo "Invalid selection. Please try again."
+      sleep .5
+    fi
+  done
+  selection="$table"
+}
+# Create a new table in db:
+function create_new_table {
+  entries=$(sqlite3 $db_path$db.db "CREATE TABLE entries ( id INTEGER PRIMARY KEY, title TEXT NOT NULL, content TEXT NOT NULL, created DATETIME DEFAULT CURRENT_TIMESTAMP );")
+  $entries
+  echo "Default table 'entries' successfully created!"
+  sleep .8
+  dbdata
+}
+#####################################
+# FILE OPERATIONS:
+#####################################
+# Create a new record:
+function new_record { 
+  clear
+  read -p "Enter a title: $prompt" title
+  read -p "Enter the content: $prompt" content
+  clear
+  preview
+  printf "Use today's date ?"  
+  yn 
+  if [ $choice = 'y' ]; then
+    entry_date=$date
+    entry_time=$time
+    clear
+    printf "Date added sucessfully!\n"
     clear
     preview
-    printf "Use today's date ?"  
-    yn 
-    if [ $choice = 'y' ]; then
-      entry_date=$date
-      entry_time=$time
-      clear
-      printf "Date added sucessfully!\n"
-      clear
-      preview
-    elif [ $choice = 'n' ]; then
-      clear
-      printf "Please enter a date [DD/MM/YY]:$prompt"
-      read entry_date
-      entry_time=$time
-      clear
-      preview
-    fi
-    # Name the file
-    echo -n "Please name your file:$prompt" 
-    read file_name
-    # Set the id:
-    id="md-$file_name-$entry_date" # Save file:
-    save_file
-  }
-  # Save file:
-  function save_file {
-    if [ -d $path ]; then
-      printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path$file_name.md
-      echo "Saved as $file_name.md on $date at $time, in $path"
-      echo ""
-      back_to_main
-    else 
-      check_path
-      save_file
-    fi
-  }
-  # Search by name 
-  function search_name { 
+  elif [ $choice = 'n' ]; then
     clear
-    echo "Do you know the name of the file you're looking for?"
+    printf "Please enter a date [DD/MM/YY]:$prompt"
+    read entry_date
+    entry_time=$time
+    clear
+    preview
+  fi
+  # Name the file
+  echo -n "Please name your file:$prompt" 
+  read file_name
+  # Set the id:
+  id="md-$file_name-$entry_date" # Save file:
+  save_file
+}
+# Save file:
+function save_file {
+  if [ -d $path ]; then
+    printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path$file_name.md
+    echo "Saved as $file_name.md on $date at $time, in $path"
+    echo ""
+    back_to_main
+  else 
+    check_path
+    save_file
+  fi
+}
+# Search by name 
+function search_name { 
+  clear
+  echo "Do you know the name of the file you're looking for?"
+  yn
+  if [ $choice = "y" ]; then 
+    clear
+    read -p "What's the name of the file you're searching for?$prompt" sq_name
+    file_name=$(printf "$sq_name.md")
+    file="$path$file_name"
+    if [ -f $file ]; then
+      clear
+      edit_action
+    elif [ ! -d $file ]; then
+      clear
+      printf "Sorry, we couldn't find the document '$sq_name'.\nHere's a list of the available docs:\n"
+      show_docs=$(ls -A "$path"| awk '/\.md/ {print}' | awk -F"\n" '{print "> "$0}')
+      printf "$show_docs\n"
+      press_enter
+      clear
+      echo "Would you like to search for another file by name?"
+      yn
+      if [ $choice = "y" ]; then 
+        search_name
+      elif [ $choice = "n" ]; then
+        back_to_retrieve
+      fi
+    fi
+  else 
+    clear
+    echo "Here's a list of all the available files:"
+    select_file
+    edit_action
+  fi
+}
+function select_file {
+  PS3="Select a file to proceed:$prompt"
+  select file in $list_all_files; 
+  do
+    if [ -n "$file" ]; then 
+      clear
+      echo "You selected: "$(echo "$file" | awk -F "/" '{print $NF}')""
+      break
+    else
+      clear
+      echo "Invalid selection, please select a valid file..."
+    fi
+  done
+}
+# Search by word 
+function search_word {
+  clear
+  read -p "What's the word you want to search for ?$prompt" word
+  clear
+  result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Number: " $2; print "Result: " $3, $4; print "\\n"}')
+  check=$(grep -i -r -n $word $path >> /dev/null; echo $?)
+  if [ $check = '0' ]; then
+    printf "$result"
+    press_enter
+    clear
+    echo "Would you like to search for another word?" 
+    yn
+    if [ $choice = 'y' ]; then
+      search_word
+    elif [ $choice = 'n' ]; then
+      get_record 
+    fi
+  else
+    echo "'"$word"' does not exist."
+    echo ""
+    echo  "Would you like to search again?" 
+    yn
+    if [ $choice = 'y' ]; then
+      search_word
+    elif [ $choice = 'n' ]; then
+      echo "Returning to the main menu..."
+      sleep 0.5
+      main
+    fi
+  fi
+}
+# Search by date:
+function search_date {
+  clear
+  read -p "Enter a date in the 'dd/mm/yy': $prompt" date
+  #check_format
+  check=$(grep -i -r -n "$date" $path >> /dev/null; echo $?)
+  result=$(grep -i -r -n "$date" $path | awk '/ID/' | awk -F ":" '{print $1}' | awk -F "/" '{print "> "$NF}')
+  if [ $check = "0" ]; then 
+    clear
+    echo "These are the documents that were written on $date:"
+    echo "$result"
+    #TODO: Code a selection menu. So we can add options of what to do with those documents. 
+    press_enter
+    clear
+    echo "Would you like to try another date?"
     yn
     if [ $choice = "y" ]; then 
-      clear
-      read -p "What's the name of the file you're searching for?$prompt" sq_name
-      file_name=$(printf "$sq_name.md")
-      file="$path$file_name"
-      if [ -f $file ]; then
-        clear
-        edit_action
-      elif [ ! -d $file ]; then
-        clear
-        printf "Sorry, we couldn't find the document '$sq_name'.\nHere's a list of the available docs:\n"
-        show_docs=$(ls -A "$path"| awk '/\.md/ {print}' | awk -F"\n" '{print "> "$0}')
-        printf "$show_docs\n"
-        press_enter
-        clear
-        echo "Would you like to search for another file by name?"
-        yn
-        if [ $choice = "y" ]; then 
-          search_name
-        elif [ $choice = "n" ]; then
-          back_to_retrieve
-        fi
-      fi
-    else 
-      clear
-      echo "Here's a list of all the available files:"
-      select_file
-      edit_action
+      search_date
+    elif [ $choice = "n" ]; then
+      back_to_main
     fi
-  }
-  function select_file {
-    PS3="Select a file to proceed:$prompt"
-    select file in $list_all_files; 
-    do
-      if [ -n "$file" ]; then 
-        clear
-        echo "You selected: "$(echo "$file" | awk -F "/" '{print $NF}')""
-        break
-      else
-        clear
-        echo "Invalid selection, please select a valid file..."
-      fi
+  else
+    echo "No results for '$date'."
+    echo "Would you like to try another date?"
+    yn
+    if [ $choice = "y" ]; then 
+      search_date
+    elif [ $choice = "n" ]; then
+      back_to_main
+    fi
+  fi
+}
+# Edit record:
+function edit_record {
+  clear
+  search_name
+}
+# Search gor a record:
+function search_record {
+  # search for $record
+  echo ""
+}
+# Select record:
+function select_record {
+  echo "selecting record under construction."
+}
+#####################################
+# UTILITY FUNCTIONS:
+#####################################
+# Preview of what a file looks like:
+function preview { 
+  clear
+  echo "Added on:   [ $entry_date ]"
+  echo "Title:      [ $title ]"
+  echo "Content:    [ $content ]"
+  echo "Save as:    [ $file_name.md ]"
+  echo ""
+}
+# [y/n] options:
+function yn {
+  printf "::[Y/n]$prompt"
+  read choice
+  if [ $choice != 'y' -a $choice != 'n' ]; then 
+    while [ $choice != 'y' -a $choice != 'n' -a $choice != " " ]; do  
+      printf "\nInvalid choice!\n \nType a lowercase [y]/[n] for [YES]/[NO] and then press [ENTER]$prompt"
+      read choice
     done
-  }
-  # Search by word 
-  function search_word {
-    clear
-    read -p "What's the word you want to search for ?$prompt" word
-    clear
-    result=$(grep -i -r -n $word $path | awk -F ":" '{print "Location: " $1; print "Line Number: " $2; print "Result: " $3, $4; print "\\n"}')
-    check=$(grep -i -r -n $word $path >> /dev/null; echo $?)
-    if [ $check = '0' ]; then
-      printf "$result"
-      press_enter
-      clear
-      echo "Would you like to search for another word?" 
-      yn
-      if [ $choice = 'y' ]; then
-        search_word
-      elif [ $choice = 'n' ]; then
-        get_record 
-      fi
-    else
-      echo "'"$word"' does not exist."
-      echo ""
-      echo  "Would you like to search again?" 
-      yn
-      if [ $choice = 'y' ]; then
-        search_word
-      elif [ $choice = 'n' ]; then
-        echo "Returning to the main menu..."
-        sleep 0.5
-        main
-      fi
-    fi
-  }
-  # Search by date:
-  function search_date {
-    clear
-    read -p "Enter a date in the 'dd/mm/yy': $prompt" date
-    #check_format
-    check=$(grep -i -r -n "$date" $path >> /dev/null; echo $?)
-    result=$(grep -i -r -n "$date" $path | awk '/ID/' | awk -F ":" '{print $1}' | awk -F "/" '{print "> "$NF}')
-    if [ $check = "0" ]; then 
-      clear
-      echo "These are the documents that were written on $date:"
-      echo "$result"
-      #TODO: Code a selection menu. So we can add options of what to do with those documents. 
-      press_enter
-      clear
-      echo "Would you like to try another date?"
-      yn
-      if [ $choice = "y" ]; then 
-        search_date
-      elif [ $choice = "n" ]; then
-        back_to_main
-      fi
-    else
-      echo "No results for '$date'."
-      echo "Would you like to try another date?"
-      yn
-      if [ $choice = "y" ]; then 
-        search_date
-      elif [ $choice = "n" ]; then
-        back_to_main
-      fi
-    fi
-  }
-  # Edit record:
-  function edit_record {
-    clear
-    search_name
-  }
-  # Search gor a record:
-  function search_record {
-    # search for $record
-    echo ""
-  }
-  # Select record:
-  function select_record {
-    echo "selecting record under construction."
-  }
-  #####################################
-  # UTILITY FUNCTIONS:
-  #####################################
-  # Preview of what a file looks like:
-  function preview { 
-    clear
-    echo "Added on:   [ $entry_date ]"
-    echo "Title:      [ $title ]"
-    echo "Content:    [ $content ]"
-    echo "Save as:    [ $file_name.md ]"
-    echo ""
-  }
-  # [y/n] options:
-  function yn {
-    printf "Type [y] for [YES] | [n] for [NO]$prompt"
-    read choice
-    if [ $choice != 'y' -a $choice != 'n' ]; then 
-      while [ $choice != 'y' -a $choice != 'n' ]; do  
-        printf "\nInvalid choice!\n \nType a lowercase [y]/[n] for [YES]/[NO] and then press [ENTER]$prompt"
-        read choice
-      done
-    fi
-  }
-  # Press Enter to continue:
-  function press_enter {
-    read -p "Press [ENTER] to continue $prompt" keypress
-  }
-  #####################################
-  # SCRIPT ENTRY POINT:
-  #####################################
-  greeting
-  main
+  fi
+}
+# Press Enter to continue:
+function press_enter {
+  read -p "Press [ENTER] to continue $prompt" keypress
+}
+
+#####################################
+# SCRIPT ENTRY POINT:
+#####################################
+greeting
+main
