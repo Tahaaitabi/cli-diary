@@ -11,10 +11,11 @@ prompt=$(printf "\n[>] ")
 id="md-$file_name-$entry_date"
 list_all_files=$(ls -l "$path"* | awk '/-r/ {print $NF}')
 #####################################
-# ERROR VALIDATION
+# REGEX PATTERNS FOR VALIDATION
 #####################################
 date_format="^[0-9]{2}[/]{1}[0-9]{2}[/]{1}[0-9]{2}$"
-
+empty_str="^\s*$"
+yn_options="^[ynYN ]$"
 #####################################
 # INITIALIZATION AND SETUP:
 #####################################
@@ -324,7 +325,7 @@ function new_record {
 function save_file {
   if [ -d $path ]; then
     printf "**ID**: $id\n**Added on**: $entry_date at $entry_time\n**Title**: # $title\n**Content**: $content\n" >> $path$file_name.md
-    echo "Saved as $file_name.md on $date at $time, in $path"
+    echo "Saved as $file_name.md on: [ $date $time ], in: [ $path ]"
     echo ""
     back_to_main
   else 
